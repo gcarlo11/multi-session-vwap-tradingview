@@ -1,0 +1,125 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+// @version=5
+
+indicator("Anchored VWAP for Market Sessions", "Anchored VWAP for Market Sessions", true)
+
+// CONSTANTS 
+
+// COLORS
+
+color LIGHT_RED = #E74C3C, color MEDIUM_RED = #B03A2E, color DARK_RED = #78281F
+
+color LIGHT_ORANGE = #F0B27A, color MEDIUM_ORANGE = #E67E22, color DARK_ORANGE = #AF601A
+
+color LIGHT_YELLOW = #F7DC6F, color MEDIUM_YELLOW = #F1C40F, color DARK_YELLOW = #B7950B
+
+color LIGHT_GREEN = #2ECC71, color MEDIUM_GREEN = #239B56, color DARK_GREEN = #186A3B
+
+color LIGHT_BLUE = #85C1E9, color MEDIUM_BLUE = #3498DB, color DARK_BLUE = #2874A6
+
+color LIGHT_PURPLE = #8E44AD, color MEDIUM_PURPLE = #6C3483, color DARK_PURPLE = #4A235A
+
+color LIGHT_GRAY = #BDC3C7, color MEDIUM_GRAY = #909497, color DARK_GRAY = #626567
+
+color WHITE   = #FFFFFF, color BLACK   = #000000, color CLEAR   = #00000000
+
+// INPUTS
+
+float sourceInputs = input.source  (hlc3,    "Source Price      ", tooltip="", inline="",  group="VWAP Settings")
+
+int sessionOffset = input.int     (0,       "Session Offset      ", tooltip="", inline="",  group="VWAP Settings")
+
+bool enableBands     = input.bool    (false,   "Enable Band Overlay", tooltip="", inline="0", group="VWAP Settings")
+
+float bandMultiplier  = input.float   (1,       "Band Multiplier", tooltip="", inline="0", group="VWAP Settings")
+
+bool sydneySessionActive = input.bool    (true,    "Enable Sydney Session", tooltip="", inline="0", group="Market Sessions")
+
+color sydneyColorInput = input.color   (MEDIUM_GREEN, "", tooltip="", inline="0", group="Market Sessions")
+
+bool tokyoSessionActive = input.bool    (true,    "Enable Tokyo Session", tooltip="", inline="1", group="Market Sessions")
+
+color tokyoColorInput  = input.color   (MEDIUM_ORANGE, "", tooltip="", inline="1", group="Market Sessions")
+
+bool londonSessionActive = input.bool    (true,    "Enable London Session", tooltip="", inline="0", group="Market Sessions")
+
+color londonColorInput  = input.color   (MEDIUM_BLUE, "", tooltip="", inline="0", group="Market Sessions")
+
+bool newYorkSessionActive = input.bool    (true,    "Enable New York Session", tooltip="", inline="1", group="Market Sessions")
+
+color newYorkColorInput = input.color   (MEDIUM_RED, "", tooltip="", inline="1", group="Market Sessions")
+
+bool customSessionActive = input.bool    (false,   "Enable Custom Session", tooltip="", inline="2", group="Market Sessions")
+
+color customColorInput   = input.color   (MEDIUM_PURPLE, "", tooltip="", inline="2", group="Market Sessions")
+
+int customSessionStart = input.int     (8,       "Custom Start Time (UTC)", 0, 23, 1, tooltip="", inline="2", group="Market Sessions")
+
+int customSessionEnd   = input.int     (13,      "Custom End Time (UTC)",   0, 23, 1, tooltip="", inline="2", group="Market Sessions")
+
+// CALCULATIONS
+
+currentTime = hour(time(timeframe.period, '0000-2400', 'UTC'), 'UTC')
+
+isSydneySession  = currentTime >= 22 or currentTime <=  5
+
+isTokyoSession   = currentTime >=  0 and currentTime <=  8
+
+isLondonSession  = currentTime >=  7 and currentTime <= 15
+
+isNewYorkSession = currentTime >= 13 and currentTime <= 21
+
+isCustomSession  = currentTime >= customSessionStart and currentTime <= customSessionEnd
+
+[sydneyVWAP, sydneyUpperBand, sydneyLowerBand] = ta.vwap(sourceInputs, isSydneySession[0] and not isSydneySession[1], bandMultiplier)
+
+[tokyoVWAP, tokyoUpperBand, tokyoLowerBand] = ta.vwap(sourceInputs, isTokyoSession[0] and not isTokyoSession[1], bandMultiplier)
+
+[londonVWAP, londonUpperBand, londonLowerBand] = ta.vwap(sourceInputs, isLondonSession[0] and not isLondonSession[1], bandMultiplier)
+
+[newYorkVWAP, newYorkUpperBand, newYorkLowerBand] = ta.vwap(sourceInputs, isNewYorkSession[0] and not isNewYorkSession[1], bandMultiplier)
+
+[customVWAP, customUpperBand, customLowerBand] = ta.vwap(sourceInputs, isCustomSession[0] and not isCustomSession[1], bandMultiplier)
+
+// PLOTS
+
+plotSydneyUpperBand = plot(sydneySessionActive and enableBands and isSydneySession ? sydneyUpperBand : na, "Sydney Upper VWAP Band", sydneyColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+plotSydneyVWAP      = plot(sydneySessionActive and isSydneySession ? sydneyVWAP : na, "Sydney VWAP", sydneyColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+plotSydneyLowerBand = plot(sydneySessionActive and enableBands and isSydneySession ? sydneyLowerBand : na, "Sydney Lower VWAP Band", sydneyColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+fill(plotSydneyUpperBand, plotSydneyLowerBand, color.new(sydneyColorInput, 95))
+
+plotTokyoUpperBand = plot(tokyoSessionActive and enableBands and isTokyoSession ? tokyoUpperBand : na, "Tokyo Upper VWAP Band", tokyoColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+plotTokyoVWAP      = plot(tokyoSessionActive and isTokyoSession ? tokyoVWAP : na, "Tokyo VWAP", tokyoColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+plotTokyoLowerBand = plot(tokyoSessionActive and enableBands and isTokyoSession ? tokyoLowerBand : na, "Tokyo Lower VWAP Band", tokyoColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+fill(plotTokyoUpperBand, plotTokyoLowerBand, color.new(tokyoColorInput, 95))
+
+plotLondonUpperBand = plot(londonSessionActive and enableBands and isLondonSession ? londonUpperBand : na, "London Upper VWAP Band", londonColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+plotLondonVWAP      = plot(londonSessionActive and isLondonSession ? londonVWAP : na, "London VWAP", londonColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+plotLondonLowerBand = plot(londonSessionActive and enableBands and isLondonSession ? londonLowerBand : na, "London Lower VWAP Band", londonColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+fill(plotLondonUpperBand, plotLondonLowerBand, color.new(londonColorInput, 95))
+
+plotNewYorkUpperBand= plot(newYorkSessionActive and enableBands and isNewYorkSession ? newYorkUpperBand : na, "New York Upper VWAP Band", newYorkColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+plotNewYorkVWAP     = plot(newYorkSessionActive and isNewYorkSession ? newYorkVWAP : na, "New York VWAP", newYorkColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+plotNewYorkLowerBand= plot(newYorkSessionActive and enableBands and isNewYorkSession ? newYorkLowerBand : na, "New York Lower VWAP Band", newYorkColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+fill(plotNewYorkUpperBand, plotNewYorkLowerBand, color.new(newYorkColorInput, 95))
+
+plotCustomUpperBand = plot(customSessionActive and enableBands and isCustomSession ? customUpperBand : na, "Custom Upper VWAP Band", customColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+plotCustomVWAP      = plot(customSessionActive and isCustomSession ? customVWAP : na, "Custom VWAP", customColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+plotCustomLowerBand = plot(customSessionActive and enableBands and isCustomSession ? customLowerBand : na, "Custom Lower VWAP Band", customColorInput, 1, plot.style_linebr, false, 0, sessionOffset)
+
+fill(plotCustomUpperBand, plotCustomLowerBand, color.new(customColorInput, 95))
